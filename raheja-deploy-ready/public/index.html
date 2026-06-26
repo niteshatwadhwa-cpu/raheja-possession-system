@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Raheja Possession System</title>
+<style>
+body{font-family:Arial;margin:0;background:#f4f6f8}
+.sidebar{width:220px;background:#0b3d3d;color:#fff;height:100vh;position:fixed;padding:20px}
+.main{margin-left:240px;padding:20px}
+.card{background:#fff;padding:15px;margin:10px 0;border-radius:8px}
+table{width:100%;background:#fff}
+td,th{padding:10px;border-bottom:1px solid #eee}
+.panel{position:fixed;right:0;width:350px;background:#fff;height:100%;display:none;padding:20px;overflow:auto}
+button{padding:8px 12px;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div id="login" class="card">
+<h2>Login</h2>
+<input id="u" placeholder="Username"><br><br>
+<input id="p" type="password" placeholder="Password"><br><br>
+<button onclick="login()">Login</button>
+</div>
+
+<div id="app" style="display:none">
+<div class="sidebar">Raheja System</div>
+
+<div class="main">
+<h2>Dashboard</h2>
+<div id="stats"></div>
+<table id="tbl"></table>
+</div>
+
+<div id="panel" class="panel"></div>
+</div>
+
+<script>
+let data=[],user="";
+
+async function login(){
+ user=document.getElementById("u").value;
+ const pass=document.getElementById("p").value;
+
+ const r=await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user,pass})});
+
+ if(r.ok){
+  document.getElementById("login").style.display="none";
+  document.getElementById("app").style.display="block";
+  load();
+ } else alert("Invalid login");
+}
+
+async function load(){
+ data=await fetch("/data").then(r=>r.json());
+
+ document.getElementById("stats").innerHTML =
+ `<div class="card">Total Units: ${data.length}</div>`;
+
+ let html="<tr><th>Flat</th><th>Name</th><th>Stage</th></tr>";
+
+ data.forEach(x=>{
+  html+=`<tr onclick="openPanel(${x.id})"><td>${x.flat}</td><td>${x.name}</td><td>${x.stage}</td></tr>`;
+ });
+
+ document.getElementById("tbl").innerHTML=html;
+}
+
+async function openPanel(id){
+ const r=await fetch("/remarks/"+id);
+ const remarks=await r.json();
+ const c=data.find(x=>x.id===id);
+
+ document.getElementById("panel").style.display="block";
+ document.getElementById("panel").innerHTML=`
+ <h3>${c.name}</h3>
+ <b>Stage:</b> ${c.stage}<br><br>
+ ${remarks.map(r=>`<p><b>${r.user}</b>: ${r.text}</p>`).join("")}
+ <textarea id="r" placeholder="Add remark"></textarea>
+ <button onclick="save(${id})">Save</button>`;
+}
+
+async function save(id){
+ const text=document.getElementById("r").value;
+
+ await fetch("/remark",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,text,user})});
+
+ openPanel(id);
+}
+</script>
+
+</body>
+</html>
